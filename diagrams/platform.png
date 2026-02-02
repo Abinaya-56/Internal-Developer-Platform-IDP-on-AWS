@@ -1,0 +1,47 @@
+┌────────────┐
+│ Developer  │
+└─────┬──────┘
+      │  Code Push
+      ▼
+┌───────────────┐
+│ GitHub Repo   │
+└─────┬─────────┘
+      │  Pipeline Trigger
+      ▼
+┌──────────────────┐
+│ GitHub Actions   │
+└─────┬────────────┘
+      │
+      │ Terraform Apply
+      ▼
+┌──────────────────────────┐
+│ AWS (Design Target)      │
+│ - VPC                    │
+│ - IAM Roles              │
+│ - Load Balancer          │
+└─────────┬────────────────┘
+          │
+          │ Docker Build & Push
+          ▼
+┌──────────────────────────┐
+│ Container Registry       │
+│ (GHCR)                   │
+└─────────┬────────────────┘
+          │
+          │ K8s Deploy
+          ▼
+┌──────────────────────────┐
+│ Kubernetes Platform      │
+│ - k3s (Execution)        │
+│ - EKS (Architecture)     │
+│ - Namespaces             │
+│ - Deployments            │
+│ - Services / Ingress     │
+└─────────┬────────────────┘
+          │
+          │ Health Check
+          ▼
+┌──────────────────────────┐
+│ Monitoring & Logs        │
+│ (Metrics / Status)       │
+└──────────────────────────┘
