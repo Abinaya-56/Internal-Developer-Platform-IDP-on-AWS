@@ -86,3 +86,63 @@ resource "aws_route_table_association" "private_assoc" {
   subnet_id      = aws_subnet.private_subnet_1.id
   route_table_id = aws_route_table.private_rt.id
 }
+
+
+resource "aws_security_group" "k8s_sg" {
+  name   = "idp-k8s-sg"
+  vpc_id = aws_vpc.idp_vpc.id
+
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Kubernetes API"
+    from_port   = 6443
+    to_port     = 6443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+
+resource "aws_key_pair" "idp_key" {
+  key_name   = "idp-key"
+  public_key = file("idp-key.pub")
+}
+
+resource "aws_instance" "k8s_node" {
+  ami           = "ami-0c02fb55956c7d316" # Amazon Linux (us-east-1)
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.public_subnet_1.id
+  key_name      = aws_key_pair.idp_key.key_name
+  vpc_security_group_ids = [aws_security_group.k8s_sg.id]
+
+  user_data = <<-EOF
+              #!/bin/bash
+              curl -sfL https://get.k3s.io | sh -
+              EOF
+
+  tags = {
+    Name = "idp-k8s-node"
+  }
+}
