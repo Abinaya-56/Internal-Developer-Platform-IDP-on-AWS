@@ -36,6 +36,11 @@ jobs:
       - name: Setup kubectl
         uses: azure/setup-kubectl@v3
 
+      - name: Setup kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s/platform/deployment.yaml
