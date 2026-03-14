@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: demo-app
-        image: nginx:latest
+        image: ghcr.io/Abinaya-56/idp-demo:latest
         ports:
         - containerPort: 80
         resources:
