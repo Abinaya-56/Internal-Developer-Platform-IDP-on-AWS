@@ -9,6 +9,6 @@ terraform {
 }
 
 provider "aws" {
-  profile = "idp-platform"
+  
   region = var.aws_region
 }
