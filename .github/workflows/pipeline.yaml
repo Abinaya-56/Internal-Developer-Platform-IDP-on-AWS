@@ -21,12 +21,12 @@ jobs:
         run: |
           docker build \
           --build-arg BUILD_TIME="$(date)" \
-          -t ghcr.io/${{ github.repository_owner }}/idp-demo:latest \
+          -t ghcr.io/abinaya-56/idp-demo:latest \
           ./apps/demo-app
 
       - name: Push Docker Image
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/idp-demo:latest
+          docker push ghcr.io/abinaya-56/idp-demo:latest
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@v3
