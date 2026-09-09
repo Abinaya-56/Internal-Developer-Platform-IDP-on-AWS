@@ -6,6 +6,10 @@ on:
       - main
       - stage
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
