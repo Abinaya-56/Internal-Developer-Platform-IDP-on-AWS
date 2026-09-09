@@ -1,0 +1,13 @@
+namespace: dev
+
+replicaCount: 2
+
+ingress:
+  host: demo-dev.local
+
+autoscaling:
+  minReplicas: 2
+  maxReplicas: 4
+
+metrics:
+  enabled: false

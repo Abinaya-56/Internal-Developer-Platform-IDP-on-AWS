@@ -1,0 +1,22 @@
+namespace: stage
+
+replicaCount: 3
+
+ingress:
+  host: demo-stage.local
+
+resources:
+  requests:
+    cpu: 150m
+    memory: 160Mi
+  limits:
+    cpu: 350m
+    memory: 320Mi
+
+autoscaling:
+  minReplicas: 3
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 60
+
+metrics:
+  enabled: true

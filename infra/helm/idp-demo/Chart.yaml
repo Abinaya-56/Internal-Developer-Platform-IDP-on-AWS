@@ -1,0 +1,12 @@
+apiVersion: v2
+name: idp-demo
+description: Helm chart for the IDP demo application, deployable across dev/stage environments
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - idp
+  - self-service
+  - platform
+maintainers:
+  - name: Abinaya

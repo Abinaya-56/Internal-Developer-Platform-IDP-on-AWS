@@ -1,0 +1,62 @@
+nameOverride: ""
+fullnameOverride: ""
+
+namespace: dev
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/abinaya-56/idp-demo
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+ingress:
+  enabled: true
+  host: demo.local
+  path: /
+  pathType: Prefix
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+probes:
+  liveness:
+    path: /
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    path: /
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    failureThreshold: 3
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+serviceAccount:
+  create: true
+  name: ""
+
+metrics:
+  enabled: false
+  exporterImage: nginx/nginx-prometheus-exporter:1.1.0
+  exporterPort: 9113
+
+rollingUpdate:
+  maxUnavailable: 0
+  maxSurge: 1

@@ -97,7 +97,7 @@ resource "aws_security_group" "k8s_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.allowed_ssh_cidr]
   }
 
   ingress {
@@ -125,9 +125,20 @@ resource "aws_security_group" "k8s_sg" {
 }
 
 
+resource "tls_private_key" "idp_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
 resource "aws_key_pair" "idp_key" {
   key_name   = "idp-key"
-  public_key = file("idp-key.pub")
+  public_key = tls_private_key.idp_key.public_key_openssh
+}
+
+resource "local_sensitive_file" "idp_private_key" {
+  content         = tls_private_key.idp_key.private_key_pem
+  filename        = "${path.module}/idp-key.pem"
+  file_permission = "0600"
 }
 
 resource "aws_instance" "k8s_node" {

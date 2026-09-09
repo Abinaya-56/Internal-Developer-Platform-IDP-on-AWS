@@ -4,37 +4,70 @@ on:
   push:
     branches:
       - main
+      - stage
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/idp-demo
+
     steps:
     - name: Checkout
       uses: actions/checkout@v3
 
+    - name: Set environment from branch
+      id: vars
+      run: |
+        if [ "${{ github.ref_name }}" = "stage" ]; then
+          echo "environment=stage" >> "$GITHUB_OUTPUT"
+        else
+          echo "environment=dev" >> "$GITHUB_OUTPUT"
+        fi
+        echo "sha_tag=$(echo ${GITHUB_SHA} | cut -c1-8)" >> "$GITHUB_OUTPUT"
+
     - name: Login to GHCR
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-    - name: Build Image
+    - name: Build image
       run: |
         docker build \
-        --build-arg BUILD_TIME="$(date)" \
-        -t ghcr.io/${{ github.repository_owner }}/idp-demo:latest \
-        ./apps/demo-app
+          --build-arg BUILD_TIME="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+          -t ${{ env.IMAGE }}:${{ steps.vars.outputs.sha_tag }} \
+          -t ${{ env.IMAGE }}:latest \
+          ./apps/demo-app
 
-    - name: Push Image
+    - name: Push image
       run: |
-        docker push ghcr.io/${{ github.repository_owner }}/idp-demo:latest
+        docker push ${{ env.IMAGE }}:${{ steps.vars.outputs.sha_tag }}
+        docker push ${{ env.IMAGE }}:latest
 
     - name: Setup kubectl
       uses: azure/setup-kubectl@v3
 
+    - name: Setup Helm
+      uses: azure/setup-helm@v4
+
     - name: Configure kubeconfig
       run: |
-        echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig
-        export KUBECONFIG=$PWD/kubeconfig
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $RUNNER_TEMP/kubeconfig
+        echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
 
-    - name: Deploy to Kubernetes
+    - name: Verify cluster connectivity
+      run: kubectl cluster-info
+
+    - name: Apply namespaces and RBAC
+      run: kubectl apply -f k8s/platform/namespace.yaml -f k8s/platform/rbac.yaml
+
+    - name: Deploy with Helm
       run: |
-        kubectl apply -f k8s/platform/
+        helm upgrade --install idp-demo ./infra/helm/idp-demo \
+          -n ${{ steps.vars.outputs.environment }} \
+          -f infra/helm/idp-demo/values-${{ steps.vars.outputs.environment }}.yaml \
+          --set image.tag=${{ steps.vars.outputs.sha_tag }} \
+          --wait --timeout 120s
+
+    - name: Verify rollout
+      run: |
+        kubectl rollout status deployment/idp-demo -n ${{ steps.vars.outputs.environment }} --timeout=120s
