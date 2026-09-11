@@ -1,4 +1,3 @@
-
 resource "aws_vpc" "idp_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
@@ -141,8 +140,23 @@ resource "local_sensitive_file" "idp_private_key" {
   file_permission = "0600"
 }
 
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
 resource "aws_instance" "k8s_node" {
-  ami           = "ami-0c02fb55956c7d316" # Amazon Linux (us-east-1)
+  ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.public_subnet_1.id
   key_name      = aws_key_pair.idp_key.key_name
@@ -150,7 +164,8 @@ resource "aws_instance" "k8s_node" {
 
   user_data = <<-EOF
               #!/bin/bash
-              curl -sfL https://get.k3s.io | sh -
+              PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+              curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san $PUBLIC_IP" sh -
               EOF
 
   tags = {
