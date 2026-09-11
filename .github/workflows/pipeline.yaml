@@ -46,23 +46,29 @@ jobs:
         docker push ${{ steps.vars.outputs.image }}:latest
 
     - name: Setup kubectl
+      if: ${{ secrets.KUBE_CONFIG != '' }}
       uses: azure/setup-kubectl@v3
 
     - name: Setup Helm
+      if: ${{ secrets.KUBE_CONFIG != '' }}
       uses: azure/setup-helm@v4
 
     - name: Configure kubeconfig
+      if: ${{ secrets.KUBE_CONFIG != '' }}
       run: |
         echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $RUNNER_TEMP/kubeconfig
         echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
 
     - name: Verify cluster connectivity
+      if: ${{ secrets.KUBE_CONFIG != '' }}
       run: kubectl cluster-info
 
     - name: Apply namespaces and RBAC
+      if: ${{ secrets.KUBE_CONFIG != '' }}
       run: kubectl apply -f k8s/platform/namespace.yaml -f k8s/platform/rbac.yaml
 
     - name: Deploy with Helm
+      if: ${{ secrets.KUBE_CONFIG != '' }}
       run: |
         helm upgrade --install idp-demo ./infra/helm/idp-demo \
           -n ${{ steps.vars.outputs.environment }} \
@@ -72,5 +78,13 @@ jobs:
           --wait --timeout 120s
 
     - name: Verify rollout
+      if: ${{ secrets.KUBE_CONFIG != '' }}
       run: |
         kubectl rollout status deployment/idp-demo -n ${{ steps.vars.outputs.environment }} --timeout=120s
+
+    - name: No cluster configured
+      if: ${{ secrets.KUBE_CONFIG == '' }}
+      run: |
+        echo "## No cluster configured" >> "$GITHUB_STEP_SUMMARY"
+        echo "Image built and pushed to GHCR successfully. Kubernetes deploy steps were skipped because the KUBE_CONFIG secret isn't set." >> "$GITHUB_STEP_SUMMARY"
+        echo "Set the KUBE_CONFIG secret (base64-encoded kubeconfig) in repo Settings > Secrets and variables > Actions to enable live deployment." >> "$GITHUB_STEP_SUMMARY"
