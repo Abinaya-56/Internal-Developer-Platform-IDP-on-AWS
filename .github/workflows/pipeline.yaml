@@ -14,6 +14,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      HAS_CLUSTER: ${{ secrets.KUBE_CONFIG != '' }}
+
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -46,29 +49,29 @@ jobs:
         docker push ${{ steps.vars.outputs.image }}:latest
 
     - name: Setup kubectl
-      if: ${{ secrets.KUBE_CONFIG != '' }}
+      if: env.HAS_CLUSTER == 'true'
       uses: azure/setup-kubectl@v3
 
     - name: Setup Helm
-      if: ${{ secrets.KUBE_CONFIG != '' }}
+      if: env.HAS_CLUSTER == 'true'
       uses: azure/setup-helm@v4
 
     - name: Configure kubeconfig
-      if: ${{ secrets.KUBE_CONFIG != '' }}
+      if: env.HAS_CLUSTER == 'true'
       run: |
         echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $RUNNER_TEMP/kubeconfig
         echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
 
     - name: Verify cluster connectivity
-      if: ${{ secrets.KUBE_CONFIG != '' }}
+      if: env.HAS_CLUSTER == 'true'
       run: kubectl cluster-info
 
     - name: Apply namespaces and RBAC
-      if: ${{ secrets.KUBE_CONFIG != '' }}
+      if: env.HAS_CLUSTER == 'true'
       run: kubectl apply -f k8s/platform/namespace.yaml -f k8s/platform/rbac.yaml
 
     - name: Deploy with Helm
-      if: ${{ secrets.KUBE_CONFIG != '' }}
+      if: env.HAS_CLUSTER == 'true'
       run: |
         helm upgrade --install idp-demo ./infra/helm/idp-demo \
           -n ${{ steps.vars.outputs.environment }} \
@@ -78,12 +81,12 @@ jobs:
           --wait --timeout 120s
 
     - name: Verify rollout
-      if: ${{ secrets.KUBE_CONFIG != '' }}
+      if: env.HAS_CLUSTER == 'true'
       run: |
         kubectl rollout status deployment/idp-demo -n ${{ steps.vars.outputs.environment }} --timeout=120s
 
     - name: No cluster configured
-      if: ${{ secrets.KUBE_CONFIG == '' }}
+      if: env.HAS_CLUSTER != 'true'
       run: |
         echo "## No cluster configured" >> "$GITHUB_STEP_SUMMARY"
         echo "Image built and pushed to GHCR successfully. Kubernetes deploy steps were skipped because the KUBE_CONFIG secret isn't set." >> "$GITHUB_STEP_SUMMARY"
