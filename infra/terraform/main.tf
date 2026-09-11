@@ -1,3 +1,4 @@
+
 resource "aws_vpc" "idp_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
@@ -157,7 +158,7 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_instance" "k8s_node" {
   ami           = data.aws_ami.ubuntu.id
-  instance_type = "t2.micro"
+  instance_type = "t3.small"
   subnet_id     = aws_subnet.public_subnet_1.id
   key_name      = aws_key_pair.idp_key.key_name
   vpc_security_group_ids = [aws_security_group.k8s_sg.id]
